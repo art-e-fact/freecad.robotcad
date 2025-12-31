@@ -679,6 +679,32 @@ class RobotProxy(ProxyBase):
         """Return the list of CROSS old (before onChanged()) joints in the order of creation."""
         return self._joints_old
 
+    def get_joints_children(self, joint_name) -> list(str):
+        """Return the list of all nested children joints from joint_name"""
+        all_joints = self.get_joints()
+
+        joints_children = []
+        links_children = []
+
+        links_children.append(joint_name.split('__to__')[1])
+
+        while len(links_children) > 0:
+            link_child = links_children[0]
+            
+            for joint in all_joints:
+                if joint == joint_name: continue
+
+                link_parent_, link_child_ = joint.Label.split('__to__')
+                
+                if link_parent_ != link_child: continue
+
+                links_children.append(link_child_)
+                joints_children.append(joint.Label)
+
+            links_children.pop(0)
+        
+        return joints_children
+
     def get_controllers(self) -> list[CrossController]:
         """Return the list of CROSS controllers in the order of creation."""
         # TODO: as property.

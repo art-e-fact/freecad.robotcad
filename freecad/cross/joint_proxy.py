@@ -121,6 +121,33 @@ class JointProxy(ProxyBase):
             obj, 'App::PropertyPlacement', 'Origin', 'Elements',
             'Joint origin relative to the parent link',
         )
+
+        add_property(
+            obj, 'App::PropertyString', 'OrienteerFace1', 'Elements',
+            'Face Orienteer',
+        )
+        obj.setEditorMode('OrienteerFace1', ['ReadOnly'])
+        add_property(
+            obj, 'App::PropertyString', 'OrienteerFace2', 'Elements',
+            'Face Orienteer',
+        )
+        obj.setEditorMode('OrienteerFace2', ['ReadOnly'])
+        add_property(
+            obj, 'App::PropertyString', 'OrienteerEdge1', 'Elements',
+            'Edge Orienteer',
+        )
+        obj.setEditorMode('OrienteerEdge1', ['ReadOnly'])
+        add_property(
+            obj, 'App::PropertyString', 'OrienteerEdge2', 'Elements',
+            'Edge Orienteer',
+        )
+        obj.setEditorMode('OrienteerEdge2', ['ReadOnly'])
+        add_property(
+            obj, 'App::PropertyEnumeration', 'Matching', 'Elements',
+            'Matching method based on either "closest_faces" or "closest_edges" ',
+        )
+        obj.Matching = ["closest_faces", "closest_edges"]
+
         add_property(
             obj, 'App::PropertyFloat', 'LowerLimit', 'Limits',
             'Lower position limit (mm or deg)',
@@ -186,6 +213,9 @@ class JointProxy(ProxyBase):
 
         self._toggle_editor_mode()
 
+        self._MatchingPrev = '' 
+
+
     def onBeforeChange(self, obj: CrossLink, prop: str) -> None:
         """Called before a property of `obj` is changed."""
         # TODO: save the old ros_name and update all joints that used it.
@@ -195,6 +225,9 @@ class JointProxy(ProxyBase):
                 self.old_ros_name = ''
             else:
                 self.old_ros_name = ros_name(obj)
+        
+        if prop == 'Matching':
+            self._MatchingPrev = obj.Matching
 
     def onChanged(self, obj: CrossJoint, prop: str) -> None:
         """Called when a property has changed."""
@@ -270,6 +303,36 @@ class JointProxy(ProxyBase):
                 obj.setPropertyStatus('JoinRotationDirection', '-Hidden')
             else:
                 obj.setPropertyStatus('JoinRotationDirection', 'Hidden')
+
+        if prop == 'Matching':
+            if self._MatchingPrev != obj.Matching and obj.OrienteerFace1 != '' and obj.OrienteerFace2 != '' and obj.OrienteerEdge1 != '' and obj.OrienteerEdge2 != '':
+                # select links (either faces or edges)
+                link1_name = f'real_l_{obj.OrienteerFace1.split('.')[0]}_ROS_'
+                link2_name = f'real_l_{obj.OrienteerFace2.split('.')[0]}_ROS_'
+                
+                sel_old = fcgui.Selection.getSelection()
+
+                fcgui.Selection.clearSelection()
+                if obj.Matching == "closest_faces":
+                    fcgui.Selection.addSelection(fc.ActiveDocument.Name, link1_name, obj.OrienteerFace1)
+                    fcgui.Selection.addSelection(fc.ActiveDocument.Name, link2_name, obj.OrienteerFace2)
+                else:
+                    fcgui.Selection.addSelection(fc.ActiveDocument.Name, link1_name, obj.OrienteerEdge1)
+                    fcgui.Selection.addSelection(fc.ActiveDocument.Name, link2_name, obj.OrienteerEdge2)
+
+                # set joint placement
+                fcgui.runCommand("SetCROSSPlacementFast")
+
+                # refresh matching of children joints
+                joints_children = self.get_robot().Proxy.get_joints_children(obj.Label)
+                for joint_name in joints_children:
+                    self.refresh_matching(joint_name)
+
+                # re-select old objects (if any)
+                fcgui.Selection.clearSelection()
+                for sel in sel_old:
+                    fcgui.Selection.addSelection(sel)
+
 
     def onDocumentRestored(self, obj: CrossJoint):
         self.__init__(obj)
@@ -496,6 +559,13 @@ class JointProxy(ProxyBase):
             return []
         self._sensors = get_joint_sensors(self.joint.Group)
         return list(self._sensors)  # A copy.
+    
+    def refresh_matching(self, joint_name) -> None:
+        joint = fc.ActiveDocument.getObject(joint_name)
+        # swith matching type
+        joint.Matching = 'closest_faces' if joint.Matching == 'closest_edges' else 'closest_edges'
+        # 2nd time to reset to prev value
+        joint.Matching = 'closest_faces' if joint.Matching == 'closest_edges' else 'closest_edges'
 
 
 class _ViewProviderJoint(ProxyBase):
