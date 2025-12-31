@@ -882,7 +882,7 @@ def make_robot_link_filled(obj:fc.DO, create_parts_group:bool = False) -> CrossL
         )
         return False
 
-    part = add_object(fc.ActiveDocument, 'App::Part', ros_name(obj))
+    part = add_object(fc.ActiveDocument, 'App::Part', f"{ros_name(obj)}_ROS")
     fc_link_to_obj = add_object(fc.ActiveDocument, 'App::Link', ros_name(obj))
     fc_link_to_obj.LinkedObject = obj
     fc_link_to_obj.adjustRelativeLinks(part)
