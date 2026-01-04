@@ -562,10 +562,24 @@ class JointProxy(ProxyBase):
     
     def refresh_matching(self, joint_name) -> None:
         joint = fc.ActiveDocument.getObject(joint_name)
-        # swith matching type
-        joint.Matching = 'closest_faces' if joint.Matching == 'closest_edges' else 'closest_edges'
-        # 2nd time to reset to prev value
-        joint.Matching = 'closest_faces' if joint.Matching == 'closest_edges' else 'closest_edges'
+        orienteer1 = joint.OrienteerEdge1 if joint.Matching == "closest_edges" else joint.OrienteerFace1
+        orienteer2 = joint.OrienteerEdge2 if joint.Matching == "closest_edges" else joint.OrienteerFace2
+        
+        link1_name_ = f'real_l_{orienteer1.split('.')[0]}_ROS_'
+        link2_name_ = f'real_l_{orienteer2.split('.')[0]}_ROS_'
+
+        fcgui.Selection.clearSelection()
+        fcgui.Selection.addSelection(fc.ActiveDocument.Name, link1_name_, orienteer1)
+        fcgui.Selection.addSelection(fc.ActiveDocument.Name, link2_name_, orienteer2)
+
+        child_orienteer = fcgui.Selection.getSelectionEx()[1]
+        parent_orienteer = fcgui.Selection.getSelectionEx()[0]
+
+        child_link = get_parent_link_of_obj(fcgui.Selection.getSelection()[1])
+
+        set_placement_by_orienteer(fc.ActiveDocument, joint, 'Origin', parent_orienteer)
+
+        move_placement(fc.ActiveDocument, child_link, 'MountedPlacement', child_orienteer, parent_orienteer)
 
 
 class _ViewProviderJoint(ProxyBase):
