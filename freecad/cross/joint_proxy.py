@@ -22,6 +22,7 @@ from .wb_utils import is_robot
 from .wb_utils import is_workcell
 from .wb_utils import is_sensor_joint
 from .wb_utils import ros_name
+from .wb_utils import get_parent_link_of_obj, set_placement_by_orienteer, move_placement
 from .utils import warn_unsupported
 
 # Stubs and typing hints.
@@ -89,6 +90,8 @@ class JointProxy(ProxyBase):
 
         self._sensors: Optional[list[CrossSensor]] = None
 
+        self._matching_prev = '' 
+        
         self.init_extensions(obj)
         self.init_properties(obj)
 
@@ -213,9 +216,6 @@ class JointProxy(ProxyBase):
 
         self._toggle_editor_mode()
 
-        self._MatchingPrev = '' 
-
-
     def onBeforeChange(self, obj: CrossLink, prop: str) -> None:
         """Called before a property of `obj` is changed."""
         # TODO: save the old ros_name and update all joints that used it.
@@ -227,7 +227,7 @@ class JointProxy(ProxyBase):
                 self.old_ros_name = ros_name(obj)
         
         if prop == 'Matching':
-            self._MatchingPrev = obj.Matching
+            self._matching_prev = obj.Matching
 
     def onChanged(self, obj: CrossJoint, prop: str) -> None:
         """Called when a property has changed."""
@@ -305,7 +305,7 @@ class JointProxy(ProxyBase):
                 obj.setPropertyStatus('JoinRotationDirection', 'Hidden')
 
         if prop == 'Matching':
-            if self._MatchingPrev != obj.Matching and obj.OrienteerFace1 != '' and obj.OrienteerFace2 != '' and obj.OrienteerEdge1 != '' and obj.OrienteerEdge2 != '':
+            if self._matching_prev != obj.Matching and obj.OrienteerFace1 != '' and obj.OrienteerFace2 != '' and obj.OrienteerEdge1 != '' and obj.OrienteerEdge2 != '':
                 # select links (either faces or edges)
                 link1_name = f'real_l_{obj.OrienteerFace1.split('.')[0]}_ROS_'
                 link2_name = f'real_l_{obj.OrienteerFace2.split('.')[0]}_ROS_'
