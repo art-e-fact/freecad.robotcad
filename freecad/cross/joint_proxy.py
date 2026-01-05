@@ -324,7 +324,7 @@ class JointProxy(ProxyBase):
                 fcgui.runCommand("SetCROSSPlacementFast")
 
                 # refresh matching of children joints
-                joints_children = self.get_robot().Proxy.get_joints_children(obj.Label)
+                joints_children = self.get_robot().Proxy._joints_children_map[obj.Label]
                 for joint_name in joints_children:
                     self.refresh_matching(joint_name)
 

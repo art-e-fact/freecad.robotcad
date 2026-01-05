@@ -266,6 +266,7 @@ class RobotProxy(ProxyBase):
         self._links: Optional[list[CrossLink]] = None
         self._joints: Optional[list[CrossJoint]] = None
         self._joints_old: Optional[list[CrossJoint]] = []
+        self._joints_children_map = {}
 
         self._controllers: Optional[list[CrossController]] = None
         self._broadcasters: Optional[list[CrossController]] = None
@@ -410,6 +411,7 @@ class RobotProxy(ProxyBase):
             self.get_joint(name): var
             for name, var in self._joint_variables_ros_map.items()
         }
+        self.update_joints_children_map()
 
     def dumps(self):
         self.robot.CreatedObjects = self._created_objects
@@ -704,6 +706,10 @@ class RobotProxy(ProxyBase):
             links_children.pop(0)
         
         return joints_children
+
+    def update_joints_children_map(self) -> None:
+        for joint in self.get_joints():
+            self._joints_children_map[joint.Label] = self.get_joints_children(joint.Label)
 
     def get_controllers(self) -> list[CrossController]:
         """Return the list of CROSS controllers in the order of creation."""
